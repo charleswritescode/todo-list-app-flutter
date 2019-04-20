@@ -6,6 +6,7 @@ import 'package:todo_list/db/todo-database.dart';
 import 'package:todo_list/dismissable-list-item.dart';
 import 'package:todo_list/empty-list-placeholder.dart';
 import 'package:todo_list/navigation-drawer.dart';
+import 'package:todo_list/todo-editor-screen.dart';
 import 'package:todo_list/todo-editor.dart';
 import 'package:todo_list/todo.dart';
 
@@ -14,14 +15,12 @@ class TodoList extends StatefulWidget {
   State<StatefulWidget> createState() => TodoState();
 }
 
-
 const int ACTION_SHOW_COMPLETED_TASKS = 0;
 const int ACTION_HIDE_COMPLETED_TASKS = 1;
 
 class TodoState extends State<TodoList> {
-
-
-  StreamController<List<Todo>> todoListStreamController = StreamController.broadcast();
+  StreamController<List<Todo>> todoListStreamController =
+      StreamController.broadcast();
 
   List<Todo> _todoItems;
   TodoDatabase database = SQLiteTodoDatabase();
@@ -30,7 +29,8 @@ class TodoState extends State<TodoList> {
   bool _showCompletedTasks = false;
 
   List<ActionBarMenuItem> menuItems = [
-    ActionBarMenuItem(ACTION_SHOW_COMPLETED_TASKS, null, "Show completed tasks"),
+    ActionBarMenuItem(
+        ACTION_SHOW_COMPLETED_TASKS, null, "Show completed tasks"),
   ];
 
   @override
@@ -73,7 +73,6 @@ class TodoState extends State<TodoList> {
     todoListStreamController.close();
   }
 
-
   /// To-do CRUD Actions
   void addTodo(
       {String title,
@@ -107,8 +106,8 @@ class TodoState extends State<TodoList> {
   }
 
   void markArchived(todo, index, context, archived) async {
-    Todo newTodo =
-        Todo(todo.id, todo.title, todo.description, todo.done, archived, todo.important);
+    Todo newTodo = Todo(todo.id, todo.title, todo.description, todo.done,
+        archived, todo.important);
     await database.updateTodo(newTodo);
 
     _todoItems.removeAt(index);
@@ -151,31 +150,30 @@ class TodoState extends State<TodoList> {
   }
 
   void _changeTodoStatus(Todo todo, String status, dynamic value) async {
-    bool done = status == 'done' ?  value : todo.done;
+    bool done = status == 'done' ? value : todo.done;
     bool important = status == 'important' ? value : todo.important;
 
     print(status);
 
-    Todo newTodo = Todo(todo.id, todo.title, todo.description, done, todo.archived, important);
+    Todo newTodo = Todo(
+        todo.id, todo.title, todo.description, done, todo.archived, important);
 
     await database.updateTodo(newTodo);
-    if((newTodo.done && !_showCompletedTasks) ||
+    if ((newTodo.done && !_showCompletedTasks) ||
         (_sectionHeader == 'important' && !newTodo.important) ||
-        (_sectionHeader == 'archived' && !newTodo.archived)){
+        (_sectionHeader == 'archived' && !newTodo.archived)) {
       _todoItems.removeWhere((test) => test.id == todo.id);
-    }
-    else {
+    } else {
       _todoItems[_todoItems.indexWhere((test) => test.id == todo.id)] = newTodo;
     }
 
     todoListStreamController.add(_todoItems);
   }
 
-
   /// UI Rendering
 
   /// When a navigation drawer item is tapped this function is called
-  _onNavigationDrawerTabSelected({String tab, bool force=false}) {
+  _onNavigationDrawerTabSelected({String tab, bool force = false}) {
     if (!force && tab == _sectionHeader) {
       return;
     }
@@ -196,26 +194,32 @@ class TodoState extends State<TodoList> {
   Widget _buildFloatingActionButton(BuildContext context) {
     return FloatingActionButton(
         child: Icon(Icons.add),
-        onPressed: () {
-          showCreateTodoDialog(context);
+        onPressed: () async {
+          await Navigator.of(context)
+              .push(MaterialPageRoute(
+              builder: (context) => TodoEditorScreen(
+                database,
+              )));
+          _onNavigationDrawerTabSelected(tab: _sectionHeader, force: true);
+
         });
   }
 
   Widget _buildBody(BuildContext context) {
     return StreamBuilder<List<Todo>>(
-    stream: todoListStreamController.stream,
-    builder: (context, stream) {
-      if(stream.connectionState == ConnectionState.waiting) {
-        return Center(child: CircularProgressIndicator());
-      }
-      else {
-        List<Todo> items = stream.data;
-        return items.isEmpty
-            ? EmptyListPlaceholder(
-            "Nothing in ${_sectionHeader.toUpperCase()}")
-            : _buildTodoListView(context, items);
-      }
-    },);
+      stream: todoListStreamController.stream,
+      builder: (context, stream) {
+        if (stream.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        } else {
+          List<Todo> items = stream.data;
+          return items.isEmpty
+              ? EmptyListPlaceholder(
+                  "Nothing in ${_sectionHeader.toUpperCase()}")
+              : _buildTodoListView(context, items);
+        }
+      },
+    );
   }
 
   Widget _buildTodoListView(BuildContext context, List<Todo> items) {
@@ -262,66 +266,19 @@ class TodoState extends State<TodoList> {
           markArchived(todo, index, context, !todo.archived);
         }
       },
-      onTap: (todo) {
-        showUpdateTodoDialog(context, todo);
+      onTap: (todo) async {
+       await Navigator.of(context)
+            .push(MaterialPageRoute(
+                builder: (context) => TodoEditorScreen(
+                      database,
+                      todo: todo,
+                    )));
+        _onNavigationDrawerTabSelected(tab: _sectionHeader, force: true);
       },
       onStatusChanged: (status, value) {
         _changeTodoStatus(todo, status, value);
       },
     );
-  }
-
-  /// To-do Edit dialogs
-
-  AlertDialog _buildCreateTodoDialog(
-      {String title = '',
-        String description = '',
-        Function(String title, String description) onSubmit}) {
-    var todoTitle = title;
-    var todoDescription = description;
-
-    return AlertDialog(
-      title: Text("Edit Task"),
-      content: TodoEditor(
-        todoTitle: todoTitle,
-        todoDescription: todoDescription,
-        controller: TodoEditorController(
-            onTitleChanged: (title) => todoTitle = title,
-            onDescriptionChanged: (description) =>
-            todoDescription = description),
-      ),
-      actions: <Widget>[
-        FlatButton(
-          child: Text("Save"),
-          onPressed: () {
-            onSubmit(todoTitle, todoDescription);
-          },
-        )
-      ],
-    );
-  }
-
-  void showCreateTodoDialog(BuildContext context) {
-    showDialog(
-        context: context,
-        builder: (context) =>
-            _buildCreateTodoDialog(onSubmit: (title, description) {
-              addTodo(title: title, description: description);
-              Navigator.of(context).pop();
-            }));
-  }
-
-  void showUpdateTodoDialog(BuildContext context, Todo todo) {
-    showDialog(
-        context: context,
-        builder: (context) => _buildCreateTodoDialog(
-            title: todo.title,
-            description: todo.description,
-            onSubmit: (title, description) {
-              _updateTodo(
-                  todo.id, title, description, todo.done, todo.archived, todo.important);
-              Navigator.of(context).pop();
-            }));
   }
 
   /// Functions to retrieve to-dos
@@ -351,13 +308,13 @@ class TodoState extends State<TodoList> {
   }
 
   onActionBarMenuItemSelected(ActionBarMenuItem item) {
-    switch(item.id) {
+    switch (item.id) {
       case ACTION_SHOW_COMPLETED_TASKS:
         setState(() {
           _showCompletedTasks = true;
         });
         _onNavigationDrawerTabSelected(tab: _sectionHeader, force: true);
-      break;
+        break;
       case ACTION_HIDE_COMPLETED_TASKS:
         setState(() {
           _showCompletedTasks = false;
@@ -367,18 +324,20 @@ class TodoState extends State<TodoList> {
     }
   }
 
-  List<PopupMenuItem<ActionBarMenuItem>> _buildPopupMenuItems(BuildContext context) {
+  List<PopupMenuItem<ActionBarMenuItem>> _buildPopupMenuItems(
+      BuildContext context) {
     List<PopupMenuItem<ActionBarMenuItem>> items = [];
 
-    if(_showCompletedTasks) {
-      final item = ActionBarMenuItem(ACTION_HIDE_COMPLETED_TASKS, null, "Hide completed tasks");
+    if (_showCompletedTasks) {
+      final item = ActionBarMenuItem(
+          ACTION_HIDE_COMPLETED_TASKS, null, "Hide completed tasks");
       items.add(PopupMenuItem<ActionBarMenuItem>(
         value: item,
         child: Text(item.title),
       ));
-    }
-    else {
-      final item = ActionBarMenuItem(ACTION_SHOW_COMPLETED_TASKS, null, "Show completed tasks");
+    } else {
+      final item = ActionBarMenuItem(
+          ACTION_SHOW_COMPLETED_TASKS, null, "Show completed tasks");
       items.add(PopupMenuItem<ActionBarMenuItem>(
         value: item,
         child: Text(item.title),
@@ -388,7 +347,12 @@ class TodoState extends State<TodoList> {
     return items;
   }
 
-
+  void onTodoUpdated(Todo todo) {
+    int index = _todoItems.indexWhere((item) => item.id == todo.id);
+    _todoItems[index] = todo;
+    print(todo.toMap());
+    todoListStreamController.add(_todoItems);
+  }
 }
 
 class ActionBarMenuItem {
@@ -397,5 +361,4 @@ class ActionBarMenuItem {
   final String title;
 
   ActionBarMenuItem(this.id, this.icon, this.title);
-
 }
