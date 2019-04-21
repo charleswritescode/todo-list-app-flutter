@@ -7,7 +7,6 @@ import 'package:todo_list/dismissable-list-item.dart';
 import 'package:todo_list/empty-list-placeholder.dart';
 import 'package:todo_list/navigation-drawer.dart';
 import 'package:todo_list/todo-editor-screen.dart';
-import 'package:todo_list/todo-editor.dart';
 import 'package:todo_list/todo.dart';
 
 class TodoList extends StatefulWidget {
@@ -197,8 +196,8 @@ class TodoState extends State<TodoList> {
         onPressed: () async {
           await Navigator.of(context)
               .push(MaterialPageRoute(
-              builder: (context) => TodoEditorScreen(
-                database,
+              builder: (context) => TodoEditor(
+                database: database
               )));
           _onNavigationDrawerTabSelected(tab: _sectionHeader, force: true);
 
@@ -269,8 +268,8 @@ class TodoState extends State<TodoList> {
       onTap: (todo) async {
        await Navigator.of(context)
             .push(MaterialPageRoute(
-                builder: (context) => TodoEditorScreen(
-                      database,
+                builder: (context) => TodoEditor(
+                      database: database,
                       todo: todo,
                     )));
         _onNavigationDrawerTabSelected(tab: _sectionHeader, force: true);
