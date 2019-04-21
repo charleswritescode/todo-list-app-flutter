@@ -74,23 +74,19 @@ class TodoState extends State<TodoList> {
 
   /// To-do CRUD Actions
   void addTodo(
-      {String title,
+      {
+        int id = -1,
+        String title,
       String description,
       int index = -1,
       done = false,
       archived = false,
       important = false}) async {
-    final todo = Todo(DateTime.now().millisecondsSinceEpoch, title, description,
+    final todo = Todo(id == -1 ? DateTime.now().millisecondsSinceEpoch : id, title, description,
         done, archived, important);
 
-    if (index != -1) {
-      _todoItems.insert(index, todo);
-    } else {
-      _todoItems.add(todo);
-    }
-    todoListStreamController.add(_todoItems);
-
     await database.insertTodo(todo);
+    refreshList();
   }
 
   void _updateTodo(int id, String title, String description, bool done,
@@ -109,9 +105,7 @@ class TodoState extends State<TodoList> {
         archived, todo.important);
     await database.updateTodo(newTodo);
 
-    _todoItems.removeAt(index);
-
-    todoListStreamController.add(_todoItems);
+    refreshList();
 
     Scaffold.of(context).showSnackBar(SnackBar(
       content: Text(archived ? "Archived" : "Unarchived"),
@@ -119,19 +113,14 @@ class TodoState extends State<TodoList> {
           label: "Undo",
           onPressed: () async {
             await database.updateTodo(todo);
-            _todoItems.insert(index, todo);
-
-            todoListStreamController.add(_todoItems);
+            refreshList();
           }),
     ));
   }
 
   void deleteTodo(todo, index, context) async {
     await database.deleteTodo(todo);
-
-    _todoItems.removeWhere((test) => test.id == todo.id);
-
-    todoListStreamController.add(_todoItems);
+    refreshList();
 
     Scaffold.of(context).showSnackBar(SnackBar(
       content: Text("Deleted"),
@@ -139,6 +128,7 @@ class TodoState extends State<TodoList> {
           label: "Undo",
           onPressed: () {
             addTodo(
+              id: todo.id,
                 title: todo.title,
                 description: todo.description,
                 index: index,
@@ -158,15 +148,7 @@ class TodoState extends State<TodoList> {
         todo.id, todo.title, todo.description, done, todo.archived, important);
 
     await database.updateTodo(newTodo);
-    if ((newTodo.done && !_showCompletedTasks) ||
-        (_sectionHeader == 'important' && !newTodo.important) ||
-        (_sectionHeader == 'archived' && !newTodo.archived)) {
-      _todoItems.removeWhere((test) => test.id == todo.id);
-    } else {
-      _todoItems[_todoItems.indexWhere((test) => test.id == todo.id)] = newTodo;
-    }
-
-    todoListStreamController.add(_todoItems);
+    refreshList();
   }
 
   /// UI Rendering
@@ -312,13 +294,13 @@ class TodoState extends State<TodoList> {
         setState(() {
           _showCompletedTasks = true;
         });
-        _onNavigationDrawerTabSelected(tab: _sectionHeader, force: true);
+        refreshList();
         break;
       case ACTION_HIDE_COMPLETED_TASKS:
         setState(() {
           _showCompletedTasks = false;
         });
-        _onNavigationDrawerTabSelected(tab: _sectionHeader, force: true);
+        refreshList();
         break;
     }
   }
@@ -351,6 +333,10 @@ class TodoState extends State<TodoList> {
     _todoItems[index] = todo;
     print(todo.toMap());
     todoListStreamController.add(_todoItems);
+  }
+
+  void refreshList() {
+    _onNavigationDrawerTabSelected(tab: _sectionHeader, force: true);
   }
 }
 
