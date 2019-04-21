@@ -7,11 +7,11 @@ const int FALSE = 0;
 const int TRUE = 1;
 
 abstract class TodoDatabase {
-  Future<List<Todo>> getUpcoming({bool includeDone = false});
+  Future<List<Todo>> getUpcoming({bool includeDone = false, String orderBy = "created_at", String order="DESC"});
 
-  Future<List<Todo>> getArchived({bool includeDone = false});
+  Future<List<Todo>> getArchived({bool includeDone = false, String orderBy = "created_at", String order="DESC"});
 
-  Future<List<Todo>> getImportant({bool includeDone = false});
+  Future<List<Todo>> getImportant({bool includeDone = false, String orderBy = "created_at", String order="DESC"});
 
   Future<void> insertTodo(Todo todo);
 
@@ -44,7 +44,7 @@ class SQLiteTodoDatabase extends TodoDatabase {
   }
 
   @override
-  Future<List<Todo>> getUpcoming({bool includeDone = false}) {
+  Future<List<Todo>> getUpcoming({bool includeDone = false, String orderBy = "created_at", String order="DESC"}) {
     String where = 'archived=?';
     List<dynamic> whereArgs = [FALSE];
 
@@ -55,7 +55,7 @@ class SQLiteTodoDatabase extends TodoDatabase {
 
     return _getDatabase()
         .then((db) =>
-            db.query(TODO_TABLE_NAME, where: where, whereArgs: whereArgs))
+            db.query(TODO_TABLE_NAME, where: where, whereArgs: whereArgs, orderBy: "$orderBy $order"))
         .then((results) => List.generate(results.length, (index) {
               final result = results[index];
               print(result);
@@ -120,7 +120,7 @@ class SQLiteTodoDatabase extends TodoDatabase {
   }
 
   @override
-  Future<List<Todo>> getArchived({bool includeDone = false}) {
+  Future<List<Todo>> getArchived({bool includeDone = false, String orderBy = "created_at", String order="DESC"}) {
     String where = "archived=?";
     List<dynamic> whereArgs = [TRUE];
 
@@ -131,7 +131,7 @@ class SQLiteTodoDatabase extends TodoDatabase {
 
     return _getDatabase()
         .then((db) =>
-            db.query(TODO_TABLE_NAME, where: where, whereArgs: whereArgs))
+            db.query(TODO_TABLE_NAME, where: where, whereArgs: whereArgs, orderBy: "$orderBy $order"))
         .then((results) => List.generate(results.length, (index) {
               final result = results[index];
               print(result);
@@ -140,7 +140,7 @@ class SQLiteTodoDatabase extends TodoDatabase {
   }
 
   @override
-  Future<List<Todo>> getImportant({bool includeDone = false}) {
+  Future<List<Todo>> getImportant({bool includeDone = false, String orderBy = "created_at", String order="DESC"}) {
     String where = "important=? and archived=?";
     List<dynamic> whereArgs = [TRUE, FALSE];
 
@@ -151,7 +151,7 @@ class SQLiteTodoDatabase extends TodoDatabase {
 
     return _getDatabase()
         .then((db) =>
-            db.query(TODO_TABLE_NAME, where: where, whereArgs: whereArgs))
+            db.query(TODO_TABLE_NAME, where: where, whereArgs: whereArgs, orderBy: "$orderBy $order"))
         .then((results) => List.generate(results.length, (index) {
               final result = results[index];
               print(result);
