@@ -73,36 +73,14 @@ class TodoState extends State<TodoList> {
   }
 
   /// To-do CRUD Actions
-  void addTodo(
-      {
-        int id = -1,
-        String title,
-      String description,
-      int index = -1,
-      done = false,
-      archived = false,
-      important = false}) async {
-    final todo = Todo(id == -1 ? DateTime.now().millisecondsSinceEpoch : id, title, description,
-        done, archived, important);
-
+  void addTodo(Todo todo) async {
     await database.insertTodo(todo);
     refreshList();
   }
 
-  void _updateTodo(int id, String title, String description, bool done,
-      bool archived, important) async {
-    Todo newTodo = Todo(id, title, description, done, archived, important);
-    await database.updateTodo(newTodo);
-
-    _todoItems[_todoItems.indexWhere((test) => test.id == newTodo.id)] =
-        newTodo;
-
-    todoListStreamController.add(_todoItems);
-  }
-
   void markArchived(todo, index, context, archived) async {
     Todo newTodo = Todo(todo.id, todo.title, todo.description, todo.done,
-        archived, todo.important);
+        archived, todo.important, todo.createdAt);
     await database.updateTodo(newTodo);
 
     refreshList();
@@ -127,13 +105,7 @@ class TodoState extends State<TodoList> {
       action: SnackBarAction(
           label: "Undo",
           onPressed: () {
-            addTodo(
-              id: todo.id,
-                title: todo.title,
-                description: todo.description,
-                index: index,
-                done: todo.done,
-                archived: todo.archived);
+            addTodo(todo);
           }),
     ));
   }
@@ -145,7 +117,7 @@ class TodoState extends State<TodoList> {
     print(status);
 
     Todo newTodo = Todo(
-        todo.id, todo.title, todo.description, done, todo.archived, important);
+        todo.id, todo.title, todo.description, done, todo.archived, important, todo.createdAt);
 
     await database.updateTodo(newTodo);
     refreshList();

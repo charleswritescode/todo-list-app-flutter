@@ -25,6 +25,7 @@ class TodoEditorState extends State<TodoEditor> {
   bool _done;
   bool _archived;
   bool _important;
+  int _createdAt;
 
   bool newTodo;
 
@@ -37,6 +38,7 @@ class TodoEditorState extends State<TodoEditor> {
       _done = todo.done;
       _archived = todo.archived;
       _important = todo.important;
+      _createdAt = todo.createdAt;
     } else {
       newTodo = true;
       _todoId = DateTime.now().millisecondsSinceEpoch;
@@ -45,6 +47,7 @@ class TodoEditorState extends State<TodoEditor> {
       _done = false;
       _archived = false;
       _important = false;
+      _createdAt = DateTime.now().millisecondsSinceEpoch;
     }
   }
 
@@ -124,7 +127,7 @@ class TodoEditorState extends State<TodoEditor> {
             Map<String, dynamic> result = {};
 
             Todo todo = Todo(_todoId, _todoTitle, _todoDescription, _done,
-                _archived, _important);
+                _archived, _important, _createdAt);
             if (newTodo) {
               await _database.insertTodo(todo);
               result['action'] = 'new_todo';
