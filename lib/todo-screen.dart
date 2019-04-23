@@ -6,8 +6,11 @@ import 'package:todo_list/db/todo-database.dart';
 import 'package:todo_list/dismissable-list-item.dart';
 import 'package:todo_list/empty-list-placeholder.dart';
 import 'package:todo_list/navigation-drawer.dart';
+import 'package:todo_list/sort-dialog.dart';
 import 'package:todo_list/todo-editor-screen.dart';
+import 'package:todo_list/todo-list-sort.dart';
 import 'package:todo_list/todo.dart';
+import 'package:todo_list/triple.dart';
 
 class TodoList extends StatefulWidget {
   @override
@@ -16,6 +19,7 @@ class TodoList extends StatefulWidget {
 
 const int ACTION_SHOW_COMPLETED_TASKS = 0;
 const int ACTION_HIDE_COMPLETED_TASKS = 1;
+const int ACTION_SORT_BY = 2;
 
 class TodoState extends State<TodoList> {
   StreamController<List<Todo>> todoListStreamController =
@@ -27,10 +31,10 @@ class TodoState extends State<TodoList> {
 
   bool _showCompletedTasks = false;
 
-  List<ActionBarMenuItem> menuItems = [
-    ActionBarMenuItem(
-        ACTION_SHOW_COMPLETED_TASKS, null, "Show completed tasks"),
-  ];
+  String _orderByFieldName = "creation date";
+  String _orderBy = "created_at";
+  String _order = "DESC";
+
 
   @override
   Widget build(BuildContext context) {
@@ -177,10 +181,31 @@ class TodoState extends State<TodoList> {
 
   Widget _buildTodoListView(BuildContext context, List<Todo> items) {
     return ListView.builder(
-        itemCount: items.length + 1,
-        itemBuilder: (context, index) => index == 0
-            ? _buildListViewSectionHeader()
-            : _buildTodoListItem(context, index - 1));
+        itemCount: items.length + 3,
+        itemBuilder: (context, index) {
+          if(index == 0) {
+            return _buildListViewSort();
+          }
+          else if(index == 1) {
+            return _buildListViewSectionHeader();
+          }
+          else if(index == items.length + 2) {
+            return Container(height: 72,);
+          }
+          else {
+            return _buildTodoListItem(context, index - 2);
+          }
+        });
+  }
+
+  Widget _buildListViewSort() {
+    return TodoListSort(sortingParam: SortingParam(_orderBy, _orderByFieldName),
+                        order: _order, onSortChanged: (param, order) {
+      setState(() {
+        _order = order;
+      });
+      refreshList();
+      },);
   }
 
   Widget _buildListViewSectionHeader() {
@@ -240,7 +265,7 @@ class TodoState extends State<TodoList> {
     setState(() {
       _sectionHeader = "upcoming";
     });
-    _todoItems = await database.getUpcoming(includeDone: _showCompletedTasks);
+    _todoItems = await database.getUpcoming(includeDone: _showCompletedTasks, orderBy: _orderBy, order: _order);
     todoListStreamController.add(_todoItems);
   }
 
@@ -248,7 +273,7 @@ class TodoState extends State<TodoList> {
     setState(() {
       _sectionHeader = "archived";
     });
-    _todoItems = await database.getArchived(includeDone: _showCompletedTasks);
+    _todoItems = await database.getArchived(includeDone: _showCompletedTasks, orderBy: _orderBy, order: _order);
     todoListStreamController.add(_todoItems);
   }
 
@@ -256,7 +281,7 @@ class TodoState extends State<TodoList> {
     setState(() {
       _sectionHeader = "important";
     });
-    _todoItems = await database.getImportant(includeDone: _showCompletedTasks);
+    _todoItems = await database.getImportant(includeDone: _showCompletedTasks, orderBy: _orderBy, order: _order);
     todoListStreamController.add(_todoItems);
   }
 
@@ -274,12 +299,17 @@ class TodoState extends State<TodoList> {
         });
         refreshList();
         break;
+      case ACTION_SORT_BY:
+        showSortByDialog();
+        break;
     }
   }
 
   List<PopupMenuItem<ActionBarMenuItem>> _buildPopupMenuItems(
       BuildContext context) {
-    List<PopupMenuItem<ActionBarMenuItem>> items = [];
+    List<PopupMenuItem<ActionBarMenuItem>> items = [
+      PopupMenuItem(value: ActionBarMenuItem(ACTION_SORT_BY, Icons.sort, "Sort by"), child: Text("Sort by"),)
+    ];
 
     if (_showCompletedTasks) {
       final item = ActionBarMenuItem(
@@ -309,6 +339,15 @@ class TodoState extends State<TodoList> {
 
   void refreshList() {
     _onNavigationDrawerTabSelected(tab: _sectionHeader, force: true);
+  }
+
+  void showSortByDialog() async {
+    Triple<String, String, IconData> sortValue = await showDialog(context: context, builder: (context) => SortDialog(context));
+    setState(() {
+      _orderByFieldName = sortValue.first;
+      _orderBy = sortValue.second;
+    });
+    refreshList();
   }
 }
 
