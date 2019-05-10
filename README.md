@@ -1,15 +1,26 @@
 # todo_list
 
-A new Flutter application.
+To-Do List App for iOS and Android built with Flutter
 
-## Getting Started
+## Features
+- Data is stored in a local SQLite database
+- Uses material design for consistent UI across platforms
+- Tasks can be marked as important, archived or deleted
+- Swipe actions to archive a task or delete it
 
-This project is a starting point for a Flutter application.
+## Screenshots
+![Screenshot 1](screenshots/device0.png)
+![Screenshot 2](screenshots/device1.png)
+![Screenshot 3](screenshots/device2.png)
+![Screenshot 4](screenshots/device3.png)
+![Screenshot 5](screenshots/device4.png)
+![Screenshot 6](screenshots/device5.png)
 
-A few resources to get you started if this is your first Flutter project:
 
-- [Lab: Write your first Flutter app](https://flutter.io/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.io/docs/cookbook)
+## Roadmap
+- [x] Implement CRUD of tasks with persistence using SQLite
+- [ ] Refactor app to use the BLOC pattern
+- [ ] Implement online sync with Firebase
 
 For help getting started with Flutter, view our 
 [online documentation](https://flutter.io/docs), which offers tutorials, 
